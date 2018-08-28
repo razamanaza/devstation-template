@@ -1,0 +1,134 @@
+ 
+---
+- hosts: all
+  remote_user: root
+
+  tasks:
+    - name: set timezone
+      timezone:
+        name: Asia/Vladivostok
+
+    - name: Ensure a locale exists
+      locale_gen:
+        name: ru_RU.UTF-8
+        state: present
+
+    - name: Add an ordinary user razamanaza
+      user:
+        name: razamanaza
+        groups: adm, sudo
+        shell: /bin/bash
+        append: yes
+        create_home: yes
+
+    - name: Setup default editor
+      copy:
+        src: files/.selected_editor
+        dest: /home/razamanaza/.selected_editor
+    
+    - name: Copy default gnome settings
+      copy:
+        src: files/dconf
+        dest: /home/razamanaza/.config
+        owner: razamanaza
+        group: razamanaza
+        mode: 0644
+
+    - name: Update apt cache and upgrade all packages
+      apt:
+        update_cache: yes
+        upgrade: safe
+    
+    - name: Install basic packages
+      apt:
+        name: "{{ the_base }}"
+      vars:
+        the_base:
+          - vim
+          - mc
+          - htop
+          - p7zip
+          - aptitude
+          - gnome-tweak-tool
+          - chromium-browser
+          - doublecmd-common
+          - doublecmd-plugins
+
+    - name: Install localization
+      apt:
+        name: "{{ localization }}"
+      vars:
+        localization:
+          - language-pack-ru
+          - language-pack-gnome-ru
+          - firefox-locale-ru
+          - libreoffice-l10n-ru
+          - libreoffice-help-ru
+          - gimp-help-ru
+          - hunspell-ru
+          - mythes-ru
+          - hyphen-ru
+          - gnome-user-docs-ru
+          - gnome-getting-started-docs-ru
+          - thunderbird-locale-ru
+          - chromium-browser-l10n
+    
+    - name: Regenerate locale to Russian
+      shell: update-locale LANG=ru_RU.UTF-8
+      when: ansible_env.LANG != "ru_RU.UTF-8"
+
+    - name: Install microsoft gpg key
+      copy:
+        src: files/visual-studio/microsoft.gpg
+        dest: /etc/apt/trusted.gpg.d/microsoft.gpg
+
+    - name: Add visual-studio repo
+      copy:
+        src: files/visual-studio/vscode.list
+        dest: /etc/apt/sources.list.d/vscode.list
+
+    - name: Install yarn gpg key
+      apt_key:
+        url: https://dl.yarnpkg.com/debian/pubkey.gpg
+        state: present
+
+    - name: Add yarn repo
+      copy:
+        src: files/yarn/yarn.list
+        dest: /etc/apt/sources.list.d/yarn.list
+
+    - name: Install nodejs gpg key
+      apt_key:
+        url: https://deb.nodesource.com/gpgkey/nodesource.gpg.key
+        state: present
+    
+    - name: Add nodejs repo
+      copy:
+        src: files/nodejs/nodesource.list
+        dest: /etc/apt/sources.list.d/nodesource.list
+
+    - name: Install dev-tools
+      apt:
+        name: "{{ dev_tools }}"
+        update_cache: yes
+      vars:
+        dev_tools:
+          - git
+          - gcc
+          - g++
+          - make
+          - code
+          - yarn
+          - nodejs
+    
+    - name: Install or update global npm modules
+      npm:
+        name: "{{ item }}"
+        global: true
+      loop:
+        - npm
+        - eslint
+        - eslint-config-airbnb-base
+        - eslint-plugin-import
+
+    
