@@ -130,5 +130,6 @@
         - eslint
         - eslint-config-airbnb-base
         - eslint-plugin-import
+        - gulp
 
     
